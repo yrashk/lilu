@@ -179,7 +179,7 @@ module Lilu
           # renderer.controller.instance_eval { render({:partial => name}.merge(opts)) }
       end
       
-      # Helper for embedded partials
+      # Helpers for embedded partials
       def embedded_partial(path,name,opts={})
         additional_opts = opts
         additional_opts.merge!({ :partial => name, :locals => { :___embedded_html___ => element_at(path).inner_html }.merge(opts[:locals]||{}) })
@@ -188,6 +188,10 @@ module Lilu
       
       def self_embedded_partial(name,opts={})
         SelfEmbeddedPartial.new(renderer,name,opts)
+      end
+      
+      def lu(name,opts={})
+        self_embedded_partial(name,:locals => opts)
       end
         
       # Helper for element_at
