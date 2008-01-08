@@ -193,7 +193,21 @@ module Lilu
       def lu(name,opts={})
         self_embedded_partial(name,:locals => opts)
       end
-        
+
+      # fill_inputs # TODO: move somewhere
+      def fill_inputs
+        update(:all,'input').with do
+          if element[:name] and element[:name].match(/([a-z,_]+)\[([a-z,_]+)\]/)
+            element[:value] = send($1).send($2)
+          end
+        end
+        update(:all,'textarea').with do
+          if element[:name] and element[:name].match(/([a-z,_]+)\[([a-z,_]+)\]/)
+            element.inner_html = send($1).send($2)
+          end
+        end
+      end
+      
       # Helper for element_at
       def element_at(path) ; @renderer.doc.at(path) ; end
 
