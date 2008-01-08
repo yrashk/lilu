@@ -4,7 +4,8 @@ module Lilu
     def initialize(view)
       @view = view
     end
-    def render(template, local_assigns = {}, file_path = nil)
+    def render(template, local_assigns = {})
+      file_path = local_assigns["___FILE_PATH___"]
       @view.instance_eval do
         local_assigns.merge!("content_for_layout" => @content_for_layout,"___view" => self)
       end
