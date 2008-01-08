@@ -52,6 +52,19 @@ module Lilu
   class ElementRelative
   end
 
+  class SelfEmbeddedPartial < ElementRelative 
+    def initialize(renderer,name,opts={})
+      @renderer, @name, @opts = renderer, name, opts
+    end
+    def to_proc(element)
+      lambda do
+        additional_opts = @opts.clone
+        additional_opts.merge!({ :partial => @name, :locals => { :___embedded_html___ => element.inner_html }.merge(@opts[:locals]||{}) })
+        @renderer.view.instance_eval { render(additional_opts) }
+      end
+    end
+  end
+  
   class ElementAt < ElementRelative
     attr_reader :path
 
@@ -165,6 +178,18 @@ module Lilu
         renderer.view.instance_eval { render({:partial => name}.merge(opts)) }
           # renderer.controller.instance_eval { render({:partial => name}.merge(opts)) }
       end
+      
+      # Helper for embedded partials
+      def embedded_partial(path,name,opts={})
+        additional_opts = opts
+        additional_opts.merge!({ :partial => name, :locals => { :___embedded_html___ => element_at(path).inner_html }.merge(opts[:locals]||{}) })
+        renderer.view.instance_eval { render(additional_opts) }
+      end
+      
+      def self_embedded_partial(name,opts={})
+        SelfEmbeddedPartial.new(renderer,name,opts)
+      end
+        
       # Helper for element_at
       def element_at(path) ; @renderer.doc.at(path) ; end
 
@@ -174,8 +199,7 @@ module Lilu
       # Helper for ElementAt
       def at(element) ; ElementAt.new(element) ; end
       
-      # Helper for OptionalElementAt
-      
+      # Helper for OptionalElementAt      
       def optionally_at(element) ; OptionalElementAt.new(element) ; end
       
 

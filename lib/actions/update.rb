@@ -7,7 +7,7 @@ module Lilu
       when Hash
         arg.each_pair do |path,value|
           break if value.nil?
-          value = value.to_proc(element) if value.is_a?(ElementRelative)
+          value = value.to_proc(element) if value.kind_of?(ElementRelative)
           value = value.call if value.is_a?(Proc)
           case path
           when OptionalElementAt
@@ -44,6 +44,8 @@ module Lilu
         end
       when Proc
         with arg.call
+      when ElementRelative
+        with arg.to_proc(element).call
       when nil
         if block_given?
           with renderer.scope.instance_eval(&block) 
