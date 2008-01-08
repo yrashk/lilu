@@ -6,6 +6,7 @@ else # if Rails is loaded, register Lilu
 
   ActionView::Base.register_template_handler :lilu, Lilu::View
   ActionView::Base.register_template_handler :html, Lilu::View
+  ActionView::Base.register_template_handler "erb.html", Lilu::View
   
   class ActionView::Base
     def render_template_with_passing_file_path(template_extension, template, file_path = nil, local_assigns = {}) #:nodoc:
