@@ -1,0 +1,10 @@
+Gregor Schmidt  
+	Renderer#method_missing patch
+Michael Holub
+    Some rspecs
+Nicholas Faiz 
+	actionpack integration improvement
+	Documentation efforts, valuable testing and debugging
+        Do not mask erb errors in lilu_view error recovery patch	
+Philip C. Plumlee
+	optionally_at spec and bugfix

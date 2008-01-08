@@ -1,0 +1,115 @@
+#!/usr/bin/env ruby
+require 'erb'
+require 'webrick'
+require 'optparse'
+include WEBrick
+begin
+  require 'lilu'
+rescue LoadError
+  require File.dirname(__FILE__) + "/../vendor/plugins/lilu/lib/lilu.rb"
+end
+OPTIONS = {
+ :Port => 3333,
+ :Root => File.dirname(__FILE__) + "/../"
+}
+
+ARGV.options do |opts|
+ script_name = File.basename($0)
+ opts.banner = "Usage: ruby #{script_name} [options]"
+
+ opts.separator ""
+
+ opts.on("-p", "--port=port", Integer,
+         "Runs Mockup Server on the specified port.",
+         "Default: #{OPTIONS[:Port]}") { |v| OPTIONS[:Port] = v }
+
+ opts.on("-r", "--root=directory", Integer,
+                 "Set application root directory.",
+                 "Default: #{OPTIONS[:Root]}") { |v| OPTIONS[:Root] = v }
+
+ opts.separator ""
+
+ opts.on("-h", "--help",
+         "Show this help message.") { puts opts; exit }
+
+ opts.parse!
+end
+
+require OPTIONS[:Root] + "/config/environment" rescue nil
+
+MockupServer = HTTPServer.new(OPTIONS)
+
+class IndexServlet < HTTPServlet::AbstractServlet
+  class NilResponder
+    def respond_to?(*args)
+      true
+    end
+    def method_missing(sym,*args)
+      return ActionView::Base.new.send(sym,*args) if ActionView::Base.new.respond_to?(sym)
+      nil
+    end
+  end
+    
+  def do_GET(req, res)
+    return browse_templates(req,res) if req.path == "/" and req.query.empty?
+    return show_template(req,res) if req.path == "/" and not req.query.empty?
+    return HTTPServlet::FileHandler.new(MockupServer, rails_root + "/public").do_GET(req,res)
+  end
+  
+  protected
+  
+  def rails_root
+    OPTIONS[:Root]
+  end
+  
+  def show_template(req,res)
+    layout = req.query['layout']
+    filename = (req.query.keys - ["layout"]).first
+    html_template = IO.read(rails_root + "/app/views/" + filename)
+    html_template = eval(ERB::Compiler.new(nil).compile(html_template)) if filename.include?(".erb")
+    if layout
+      layout_template = IO.read(rails_root + "/app/views/layouts/" + layout)
+      responder = NilResponder.new
+      responder.instance_eval do
+        def print(*args)
+          @collect ||= ""
+          @collect << args.collect(&:to_s).join
+        end
+        def evaluate(string)
+          instance_eval(string)
+          @collect
+        end
+      end
+      layout_template = responder.evaluate(ERB::Compiler.new(nil).compile(layout_template)) if layout.include?(".erb")
+      puts layout_template
+      lilu_template = IO.read(rails_root + "/app/views/layouts/" + layout.gsub(/(\.erb)?\.html$/,".lilu"))
+      lilu_template << %q{
+        update(:all,'a').with :href => lambda { element[:href].starts_with?('/?') ? "#{element[:href]}&layout=#{___mockup_layout___}" : element[:href] if  element[:href]}
+      }
+      res.body = Lilu::Document.new(lilu_template, layout_template , { 'content_for_layout' => html_template, '___mockup_layout___' => layout, '___view' => NilResponder.new  }).render
+    else
+      res.body = html_template
+    end
+    res['Content-Type'] = "text/html"
+  end
+  
+  def browse_templates(req,res)
+    res.body = "Templates:"
+    layouts = {}
+    Dir[rails_root + '/app/views/layouts/*.html'].each do |filename|
+      layouts[filename.split("app/views/layouts/").last] = filename
+    end
+    Dir[rails_root + '/app/views/**/*.html'].sort.each do |filename|
+      next if layouts.values.member?(filename)
+      filename = filename.split("app/views/").last
+      layout_links = layouts.keys.collect {|l|" with <a href=\"/?#{filename}&layout=#{l}\">#{l}</a>"}.join
+      res.body << "<div><a href=\"/?#{filename}\">#{filename}</a>#{layout_links}</div>"
+    end
+    res['Content-Type'] = "text/html"
+  end
+end
+
+MockupServer.mount("/",IndexServlet)
+
+trap("INT"){ MockupServer.shutdown }
+MockupServer.start
