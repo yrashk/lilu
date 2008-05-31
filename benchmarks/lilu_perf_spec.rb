@@ -101,7 +101,7 @@ describe Lilu::Document do
           result = RubyProf.stop
           printer = RubyProf::GraphHtmlPrinter.new(result)
           f = File.new('populate_result.html','w')
-          printer.print(f, 1)        
+          printer.print(f, '1')        
           f.close
         }
       end
@@ -181,7 +181,7 @@ describe Lilu::Document do
         result = RubyProf.stop
         printer = RubyProf::GraphHtmlPrinter.new(result)
         f = File.new('update_result.html','w')
-        printer.print(f, 1)        
+        printer.print(f, '1')        
         f.close
       }
     end
