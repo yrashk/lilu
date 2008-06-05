@@ -95,6 +95,16 @@ describe Lilu::Document do
     li_items.last[:id].should == "2"
   end
 
+  it "should populate element details on populate(path).for(:each,list) construct" do
+    @list = %w[apple orange grapefruit]
+    @instructions = %{populate("#fruits li").for(:each, list)}
+    @html_source = %{<ul id="fruits"><li>watermelon</li></ul>}
+    @Document = Lilu::Document.new(@instructions,@html_source, {'list' => @list})
+    result = Hpricot(@Document.render)
+    li_items = result.search("#fruits li")
+    @list.each_with_index {|el, i| li_items[i].inner_html.should == el}
+  end
+
   it "should populate element details on populate(:all,path).for(:each,@blogs) { block }  construct" do
     @blogs = [OpenStruct.new(:url => "http://railsware.com", :blog_id => 1, :name => "Railsware")]
     @instructions = %{populate(:all,".blog-example").for(:each,@blogs) {|blog| mapping at('a') => {:href => blog.url, text => blog.name}, :id => blog.blog_id } }

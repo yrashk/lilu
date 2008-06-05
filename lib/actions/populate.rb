@@ -14,7 +14,7 @@ module Lilu
       element_html = element.to_html
       data.send(method) do |*objects| 
         update_action.element = element
-        update_action.with(block.call(*objects))
+        update_action.with( block ? block.call(*objects) : objects )
 
         parent.insert_before(Hpricot.make(element.to_html),element) 
         element = Hpricot.make(element_html)
